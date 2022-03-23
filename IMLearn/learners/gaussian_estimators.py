@@ -10,6 +10,7 @@ class UnivariateGaussian:
     """
     Class for univariate Gaussian Distribution Estimator
     """
+
     def __init__(self, biased_var: bool = False) -> UnivariateGaussian:
         """
         Estimator for univariate Gaussian mean and variance parameters
@@ -102,15 +103,16 @@ class UnivariateGaussian:
         log_likelihood: float
             log-likelihood calculated
         """
-        pdfs = np.exp(-((X - mu) ** 2) / (2 * sigma)) / math.sqrt(2 * math.pi * sigma)
-        log_likelihood = np.prod(pdfs)
-        return log_likelihood[0]
+        m = len(X)
+        log_likelihood = np.log2(np.exp(-np.sum((X - mu) ** 2) / (2 * sigma)) / ((2 * math.pi * sigma) ** (m / 2)))
+        return log_likelihood
 
 
 class MultivariateGaussian:
     """
     Class for multivariate Gaussian Distribution Estimator
     """
+
     def __init__(self):
         """
         Initialize an instance of multivariate Gaussian estimator
@@ -150,8 +152,8 @@ class MultivariateGaussian:
         Sets `self.mu_`, `self.cov_` attributes according to calculated estimation.
         Then sets `self.fitted_` attribute to `True`
         """
-        raise NotImplementedError()
-
+        self.mu_ = np.mean(X, axis=0)
+        self.cov_ = np.cov(X, rowvar=False)
         self.fitted_ = True
         return self
 
@@ -175,7 +177,10 @@ class MultivariateGaussian:
         """
         if not self.fitted_:
             raise ValueError("Estimator must first be fitted before calling `pdf` function")
-        raise NotImplementedError()
+        d = X.size[1]
+        pdfs = math.exp(-np.matmul(np.matmul((X - self.mu_).transpose, np.linalg.inv(self.cov_)), X - self.mu_) / 2) / \
+               math.sqrt(((2 * math.pi) ** d) * np.linalg.det(self.cov_))
+        return pdfs
 
     @staticmethod
     def log_likelihood(mu: np.ndarray, cov: np.ndarray, X: np.ndarray) -> float:
@@ -196,4 +201,14 @@ class MultivariateGaussian:
         log_likelihood: float
             log-likelihood calculated over all input data and under given parameters of Gaussian
         """
-        raise NotImplementedError()
+        m = X.shape[0]  # number of samples
+        d = X.shape[1]  # number of features
+        log_likelihood = (-m / 2) * ((d * math.log2(2 * math.pi)) + (math.log(np.linalg.det(cov)))) -\
+                         (0.5 * np.sum(((X - mu) @ np.linalg.inv(cov)) * (X - mu)))
+        return log_likelihood
+
+
+if __name__ == '__main__':
+    X = np.array([1, 5, 2, 3, 8, -4, -2, 5, 1, 10, -10, 4, 5, 2, 7, 1, 1, 3, 2, -1, -3, 1, -4, 1, 2, 1,
+                  -4, -4, 1, 3, 2, 6, -6, 8, 3, -6, 4, 1, -2, 3, 1, 4, 1, 4, -2, 3, -1, 0, 3, 5, 0, -2])
+    print(UnivariateGaussian.log_likelihood(10, 1, X))
