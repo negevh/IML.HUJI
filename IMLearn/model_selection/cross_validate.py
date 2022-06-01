@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import math
 from copy import deepcopy
 from typing import Tuple, Callable
 import numpy as np
@@ -37,4 +39,22 @@ def cross_validate(estimator: BaseEstimator, X: np.ndarray, y: np.ndarray,
     validation_score: float
         Average validation score over folds
     """
-    raise NotImplementedError()
+    X_y = np.c_[X, y]
+    np.random.shuffle(X_y)
+    n_samples = float(X.shape[0])
+    n_subset = round(n_samples / 5)
+    end_ind = 0
+    train_scores = []
+    valid_scores = []
+    for i in range(cv):
+        start_ind = end_ind
+        end_ind = start_ind + n_subset if i < cv - 1 else int(n_samples)
+        X_train = np.delete(X_y[:, :-1], np.s_[start_ind:end_ind], 0)
+        y_train = np.delete(X_y[:, -1], np.s_[start_ind:end_ind])
+        X_valid = X_y[start_ind:end_ind, :-1]
+        y_valid = X_y[start_ind:end_ind, -1]
+        estimator.fit(X_train, y_train)
+        train_scores.append(scoring(estimator.predict(X_train), y_train))
+        valid_scores.append(scoring(estimator.predict(X_valid), y_valid))
+
+    return np.average(train_scores), np.average(valid_scores)
